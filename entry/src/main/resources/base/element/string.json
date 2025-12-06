@@ -1,0 +1,44 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "EntryAbility description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "EntryAbility"
+    },
+    {
+      "name": "app_name",
+      "value": "化妆镜"
+    },
+    {
+      "name": "camera_permission_reason",
+      "value": "需要使用摄像头进行预览"
+    },
+    {
+      "name": "start_camera",
+      "value": "打开摄像头"
+    },
+    {
+      "name": "stop_camera",
+      "value": "关闭"
+    },
+    {
+      "name": "flip_camera",
+      "value": "镜像翻转"
+    },
+    {
+      "name": "rotate_camera",
+      "value": "旋转 90°"
+    },
+    {
+      "name": "switch_camera",
+      "value": "切换镜头"
+    }
+  ]
+}

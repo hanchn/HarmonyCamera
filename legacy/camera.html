@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>高清摄像头预览</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        width: 100vw;
+        margin: 0;
+        background-color: #000; /* 全黑背景 */
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        overflow: hidden; /* 防止滚动条 */
+      }
+      .container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        max-width: none; /* 取消最大宽度限制 */
+        aspect-ratio: auto; /* 取消固定比例 */
+        background: #000;
+        border-radius: 0; /* 全屏模式不需要圆角 */
+        box-shadow: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      video {
+        /* 默认尺寸，通过JS动态调整以适应旋转 */
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        display: block;
+        transition: transform 0.3s ease;
+      }
+      /* 默认翻转类 */
+      .mirrored {
+        transform: scaleX(-1);
+      }
+      .controls {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 15px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 12px 24px;
+        border-radius: 40px;
+        backdrop-filter: blur(10px);
+        z-index: 100;
+        white-space: nowrap;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
+        transition: all 0.2s ease;
+        outline: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      button:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+      button:active {
+        transform: translateY(0);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      button.active-state {
+        background-color: rgba(0, 123, 255, 0.6);
+        border-color: rgba(0, 123, 255, 0.8);
+      }
+      #errorMessage {
+        color: #ff6b6b;
+        margin-top: 15px;
+        display: none;
+        text-align: center;
+      }
+      .resolution-info {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        color: rgba(255, 255, 255, 0.8);
+        background: rgba(0, 0, 0, 0.4);
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        pointer-events: none;
+        backdrop-filter: blur(2px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- 默认添加 mirrored 类 -->
+      <video id="videoElement" class="mirrored" autoplay playsinline></video>
+      <div class="resolution-info" id="resInfo">等待摄像头...</div>
+
+      <div class="controls">
+        <button id="startButton">打开摄像头</button>
+        <button id="flipButton">镜像翻转</button>
+        <button id="rotateButton">旋转 90°</button>
+        <button id="stopButton" disabled>关闭</button>
+        <button id="fullscreenButton">全屏模式</button>
+      </div>
+    </div>
+
+    <div id="errorMessage"></div>
+
+    <script>
+      const videoElement = document.getElementById("videoElement");
+      const startButton = document.getElementById("startButton");
+      const stopButton = document.getElementById("stopButton");
+      const flipButton = document.getElementById("flipButton");
+      const rotateButton = document.getElementById("rotateButton");
+      const fullscreenButton = document.getElementById("fullscreenButton");
+      const errorMessage = document.getElementById("errorMessage");
+      const resInfo = document.getElementById("resInfo");
+
+      let stream = null;
+      let isMirrored = true; // 默认镜像
+      let rotation = 0;
+
+      // 设置高清约束条件 (尝试 1080p, 最低 720p)
+      const constraints = {
+        video: {
+          width: { ideal: 1920, min: 1280 },
+          height: { ideal: 1080, min: 720 },
+          facingMode: "user",
+        },
+        audio: false,
+      };
+
+      function updateTransform() {
+        let transform = `rotate(${rotation}deg)`;
+
+        if (isMirrored) {
+          if (rotation === 0 || rotation === 180) {
+            transform += " scaleX(-1)";
+          } else {
+            transform += " scaleY(-1)";
+          }
+        }
+
+        videoElement.style.transform = transform;
+      }
+
+      async function startCamera() {
+        try {
+          errorMessage.style.display = "none";
+
+          // 请求摄像头权限
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          videoElement.srcObject = stream;
+
+          startButton.disabled = true;
+          stopButton.disabled = false;
+          startButton.classList.add("active-state");
+
+          // 监听视频加载元数据，获取实际分辨率
+          videoElement.onloadedmetadata = () => {
+            const width = videoElement.videoWidth;
+            const height = videoElement.videoHeight;
+            resInfo.textContent = `分辨率: ${width} x ${height}`;
+            updateTransform(); // 初始化变换
+          };
+        } catch (error) {
+          console.error("Error accessing media devices.", error);
+          errorMessage.textContent = `无法访问摄像头: ${error.message}`;
+          errorMessage.style.display = "block";
+        }
+      }
+
+      function stopCamera() {
+        if (stream) {
+          const tracks = stream.getTracks();
+          tracks.forEach((track) => track.stop());
+          videoElement.srcObject = null;
+          stream = null;
+
+          startButton.disabled = false;
+          stopButton.disabled = true;
+          startButton.classList.remove("active-state");
+          resInfo.textContent = "摄像头已关闭";
+        }
+      }
+
+      function toggleFlip() {
+        isMirrored = !isMirrored;
+        updateTransform();
+        flipButton.classList.toggle("active-state", isMirrored);
+      }
+
+      function rotateCamera() {
+        rotation = (rotation + 90) % 360;
+        updateTransform();
+      }
+
+      function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch((err) => {
+            console.log(
+              `Error attempting to enable full-screen mode: ${err.message} (${err.name})`
+            );
+          });
+        } else {
+          document.exitFullscreen();
+        }
+      }
+
+      startButton.addEventListener("click", startCamera);
+      stopButton.addEventListener("click", stopCamera);
+      flipButton.addEventListener("click", toggleFlip);
+      rotateButton.addEventListener("click", rotateCamera);
+      fullscreenButton.addEventListener("click", toggleFullscreen);
+
+      // 初始化按钮状态
+      flipButton.classList.toggle("active-state", isMirrored);
+
+      // 页面加载后自动尝试打开（可选，根据需求）
+      // startCamera();
+    </script>
+  </body>
+</html>
