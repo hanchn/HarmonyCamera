@@ -53,10 +53,10 @@ struct Index {
         return;
       }
       
-      // Attempt to find back camera as default
-      const backCameraIndex = this.cameras.findIndex(c => c.cameraPosition === camera.CameraPosition.CAMERA_POSITION_BACK);
-      if (backCameraIndex !== -1) {
-        this.cameraDeviceIndex = backCameraIndex;
+      // Attempt to find front camera as default for "Mirror" app
+      const frontCameraIndex = this.cameras.findIndex(c => c.cameraPosition === camera.CameraPosition.CAMERA_POSITION_FRONT);
+      if (frontCameraIndex !== -1) {
+        this.cameraDeviceIndex = frontCameraIndex;
       }
 
       if (this.surfaceId) {
