@@ -126,7 +126,25 @@ struct Index {
 
   async switchCamera() {
     await this.stopCamera();
-    this.cameraDeviceIndex = (this.cameraDeviceIndex + 1) % this.cameras.length;
+    
+    // 智能切换：在前置和后置之间切换，跳过其他辅助镜头
+    const currentCam = this.cameras[this.cameraDeviceIndex];
+    let nextIndex = -1;
+
+    if (currentCam.cameraPosition === camera.CameraPosition.CAMERA_POSITION_FRONT) {
+      // 当前是前置，寻找后置
+      nextIndex = this.cameras.findIndex(c => c.cameraPosition === camera.CameraPosition.CAMERA_POSITION_BACK);
+    } else {
+      // 当前是后置（或未知），寻找前置
+      nextIndex = this.cameras.findIndex(c => c.cameraPosition === camera.CameraPosition.CAMERA_POSITION_FRONT);
+    }
+
+    // 如果找不到目标类型的镜头，则按顺序切换
+    if (nextIndex === -1) {
+      nextIndex = (this.cameraDeviceIndex + 1) % this.cameras.length;
+    }
+
+    this.cameraDeviceIndex = nextIndex;
     await this.startCamera();
   }
 
